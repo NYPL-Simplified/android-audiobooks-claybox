@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:weightSum="1">
+
+    <!-- TODO id in simplified-app-shared is defined with: android:id="@+id/cellIcon" -->
+    <!-- I will rename to a more descriptive word in my code, and see if I can integrate. -->
+    <ImageView
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:id="@+id/burger_menu_item_icon"
+    android:src="@mipmap/ic_launcher"
+    android:layout_weight="0.88"
+    android:background="?android:attr/activatedBackgroundIndicator"
+    android:paddingLeft="10dp"
+    />
+
+    <!-- TODO id in simplified-app-shared is defined with: android:id="@android:id/text1" -->
+    <!-- I will define my id in a way I can reference from my code,
+    and see if I can integrate. -->
+<TextView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/burger_menu_item_text"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:textAppearance="?android:attr/textAppearanceListItemSmall"
+    android:gravity="center_vertical"
+    android:paddingLeft="11dp"
+    android:paddingRight="11dp"
+    android:text="Item"
+    android:background="?android:attr/activatedBackgroundIndicator"
+    android:minHeight="?android:attr/listPreferredItemHeightSmall"
+    android:layout_weight="0.12"/>
+</LinearLayout>
+
+
+    <!-- copied from simplified-app-shared/src/main/res/layout/drawer_item.xml -->
