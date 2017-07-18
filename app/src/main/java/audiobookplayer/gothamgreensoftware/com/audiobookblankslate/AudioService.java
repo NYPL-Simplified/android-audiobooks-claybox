@@ -6,15 +6,12 @@ import android.content.res.AssetFileDescriptor;
 import android.content.res.AssetManager;
 import android.media.MediaPlayer;
 import android.os.IBinder;
-import android.support.annotation.IntDef;
 import android.support.annotation.Nullable;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import android.content.ContentUris;
+
 import android.media.AudioManager;
-import android.media.MediaPlayer;
-import android.net.Uri;
 import android.os.Binder;
 import android.os.PowerManager;
 import android.util.Log;
@@ -27,14 +24,14 @@ import android.util.Log;
  *
  * Created by daryachernikhova on 7/12/17.
  */
-public class MusicService extends Service implements
+public class AudioService extends Service implements
         MediaPlayer.OnPreparedListener, MediaPlayer.OnErrorListener,
         MediaPlayer.OnCompletionListener {
 
   // so can filter all log msgs belonging to my app
-  private final String TAG = "AudioBS.MusicService";
+  private final String TAG = "AudioBS.AudioService";
   // so can do a search in log msgs for just this class's output
-  //private final String SUB_TAG = "MusicService";
+  //private final String SUB_TAG = "AudioService";
 
 
   // media player
@@ -81,8 +78,8 @@ public class MusicService extends Service implements
     });
     */
 
-    // new code lets the MusicService handle MediaPlayer events
-    // corresponds to the interfaces MusicService implements
+    // new code lets the AudioService handle MediaPlayer events
+    // corresponds to the interfaces AudioService implements
     mediaPlayer.setOnPreparedListener(this);
     mediaPlayer.setOnCompletionListener(this);
     mediaPlayer.setOnErrorListener(this);
@@ -234,7 +231,7 @@ public class MusicService extends Service implements
     AssetFileDescriptor assetFileDescriptor = null;
 
     /*
-    moving to MusicService class
+    moving to AudioService class
     MediaPlayer mediaPlayer = new MediaPlayer();
     // so we can call media playback asynchronously, so's not to hang the UI thread
     mediaPlayer.setOnPreparedListener(new MediaPlayer.OnPreparedListener(){
@@ -279,10 +276,10 @@ public class MusicService extends Service implements
    * Is a communication interface to send requests and receive responses either within a particular process or across processes.
    */
   public class MusicBinder extends Binder {
-    MusicService getService() {
+    AudioService getService() {
       Log.d(TAG, "MusicBinder.getService");
 
-      return MusicService.this;
+      return AudioService.this;
     }
   }
 }

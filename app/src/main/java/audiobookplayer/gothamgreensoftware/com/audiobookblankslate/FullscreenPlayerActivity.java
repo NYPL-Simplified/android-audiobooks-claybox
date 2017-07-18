@@ -1,16 +1,6 @@
 package audiobookplayer.gothamgreensoftware.com.audiobookblankslate;
 
-import android.content.ContentResolver;
-import android.content.res.AssetFileDescriptor;
-import android.content.res.AssetManager;
-import android.database.Cursor;
-import android.media.AudioManager;
-import android.media.MediaPlayer;
-import android.net.Uri;
 import android.os.Bundle;
-import android.provider.MediaStore;
-import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.Snackbar;
 import android.util.Log;
 import android.view.View;
 import android.support.design.widget.NavigationView;
@@ -24,9 +14,6 @@ import android.view.MenuItem;
 import android.widget.AdapterView;
 import android.widget.ListView;
 
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -35,22 +22,20 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
-import android.view.MenuItem;
-import android.view.View;
 
 import android.widget.MediaController.MediaPlayerControl;
 
 
-public class FullscreenPlayerActivity extends AppCompatActivity
-        implements NavigationView.OnNavigationItemSelectedListener, MediaPlayerControl {
+//public class FullscreenPlayerActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener, MediaPlayerControl {
+public class FullscreenPlayerActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
 
   // so can filter all log msgs belonging to my app
   private final String TAG = "AudiobookBlankSlate";
   // so can do a search in log msgs for just this class's output
   private final String SUB_TAG = "FullscreenPlayerActivity";
 
-  // we will play audio in the MusicService
-  private MusicService musicService = null;
+  // we will play audio in the AudioService
+  private AudioService audioService = null;
   private Intent playIntent = null;
   private boolean isMusicServiceBound = false;
 
@@ -156,9 +141,9 @@ Furthermore if I recall correctly, I don't think that the "position" in the list
 
          */
 
-        if (musicService != null) {
-          musicService.setChapterPosition(0);
-          musicService.playTrack();
+        if (audioService != null) {
+          audioService.setChapterPosition(0);
+          audioService.playTrack();
         } else {
           Log.d(TAG, SUB_TAG + "why?");
         }
@@ -178,14 +163,14 @@ Furthermore if I recall correctly, I don't think that the "position" in the list
   @Override
   protected void onDestroy() {
     stopService(playIntent);
-    musicService = null;
+    audioService = null;
     super.onDestroy();
   }
 
 
   /**
-   * Start the MusicService instance when the Activity instance starts.
-   * Pass the song list we've assembled to the MusicService.
+   * Start the AudioService instance when the Activity instance starts.
+   * Pass the song list we've assembled to the AudioService.
    *
    *
    */
@@ -195,7 +180,7 @@ Furthermore if I recall correctly, I don't think that the "position" in the list
     Log.d(TAG, SUB_TAG + "Activity.onStart");
 
     if (playIntent == null) {
-      playIntent = new Intent(this, MusicService.class);
+      playIntent = new Intent(this, AudioService.class);
       // BIND_AUTO_CREATE recreates the Service if it is destroyed when there’s a bounding client
       boolean bound = bindService(playIntent, musicConnection, Context.BIND_AUTO_CREATE);
       Log.d(TAG, SUB_TAG + "bound=" + bound);
@@ -217,20 +202,20 @@ Furthermore if I recall correctly, I don't think that the "position" in the list
     public void onServiceConnected(ComponentName name, IBinder service) {
       Log.d(TAG, SUB_TAG + "musicConnection.onServiceConnected");
 
-      MusicService.MusicBinder binder = (MusicService.MusicBinder)service;
+      AudioService.MusicBinder binder = (AudioService.MusicBinder)service;
       // get service
-      musicService = binder.getService();
+      audioService = binder.getService();
 
       // pass chapter list
       // NOTE: If the service is Local (not IntentService), setChapters execution happens on the thread of the calling client/activity (this UI thread).
       // If wish to call a long-running operation, then spin a new background thread in the called service method.
-      musicService.setChapters(chapters);
+      audioService.setChapters(chapters);
       isMusicServiceBound = true;
     }
 
     @Override
     public void onServiceDisconnected(ComponentName name) {
-      musicService = null;
+      audioService = null;
       isMusicServiceBound = false;
     }
   };
@@ -325,8 +310,8 @@ Furthermore if I recall correctly, I don't think that the "position" in the list
       //navigationView.
 
 
-      musicService.setChapterPosition(0);
-      musicService.playTrack();
+      audioService.setChapterPosition(0);
+      audioService.playTrack();
     }// if chapter
 
 
@@ -338,7 +323,7 @@ Furthermore if I recall correctly, I don't think that the "position" in the list
   /* ------------------------------------ /NAVIGATION EVENT HANDLERS ------------------------------------- */
 
 
-  /* ------------------------------------ PLAYBACK EVENT HANDLERS ------------------------------------- */
+  /* ------------------------------------ PLAYBACK EVENT HANDLERS ------------------------------------- * /
 
   @Override
   public void start() {
@@ -395,7 +380,7 @@ Furthermore if I recall correctly, I don't think that the "position" in the list
     return 0;
   }
 
-  /* ------------------------------------ /PLAYBACK EVENT HANDLERS ------------------------------------- */
+  / * ------------------------------------ /PLAYBACK EVENT HANDLERS ------------------------------------- */
 
 
 }

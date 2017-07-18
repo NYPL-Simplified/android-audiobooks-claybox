@@ -24,7 +24,7 @@
         </activity>
 
         <service
-            android:name="audiobookplayer.gothamgreensoftware.com.audiobookblankslate.MusicService">
+            android:name="audiobookplayer.gothamgreensoftware.com.audiobookblankslate.AudioService">
         </service>
     </application>
 
