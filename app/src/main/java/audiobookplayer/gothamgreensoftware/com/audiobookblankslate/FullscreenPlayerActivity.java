@@ -30,11 +30,34 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 
-public class FullscreenPlayerActivity extends AppCompatActivity
-        implements NavigationView.OnNavigationItemSelectedListener {
+import android.os.IBinder;
+import android.content.ComponentName;
+import android.content.Context;
+import android.content.Intent;
+import android.content.ServiceConnection;
+import android.view.MenuItem;
+import android.view.View;
 
+import android.widget.MediaController.MediaPlayerControl;
+
+
+public class FullscreenPlayerActivity extends AppCompatActivity
+        implements NavigationView.OnNavigationItemSelectedListener, MediaPlayerControl {
+
+  // so can filter all log msgs belonging to my app
   private final String TAG = "AudiobookBlankSlate";
+  // so can do a search in log msgs for just this class's output
   private final String SUB_TAG = "FullscreenPlayerActivity";
+
+  // we will play audio in the MusicService
+  private MusicService musicService = null;
+  private Intent playIntent = null;
+  private boolean isMusicServiceBound = false;
+
+  private ArrayList<ChapterTrack> chapters = null;
+
+
+  /* ---------------------------------- LIFECYCLE METHODS ----------------------------------- */
 
   @Override
   protected void onCreate(Bundle savedInstanceState) {
@@ -70,6 +93,9 @@ public class FullscreenPlayerActivity extends AppCompatActivity
     ListView navigationView = (ListView) findViewById(R.id.nav_view);
     List<BurgerMenuItem> menuItems = new ArrayList<BurgerMenuItem>();
 
+    // TODO:  fill in, then generate the BurgerMenuItem off it, then pass in from manifest-reading code
+    chapters = new ArrayList<ChapterTrack>();
+
     // TODO:  take the hardcoded stuff outside
     // TODO:  unhardcode the strings, so they can be translatable
     BurgerMenuAdapter menuAdapter = new BurgerMenuAdapter(this, R.layout.burger_menu_drawer_item, menuItems);
@@ -89,6 +115,8 @@ public class FullscreenPlayerActivity extends AppCompatActivity
 
     navigationView.setAdapter(menuAdapter);
 
+    // TODO: integrate with onNavigationItemSelected, which used to handle the menu clicks when the menu was in the NavigationView
+    // (it might be there again, once I wrap it, will the clicks come to both methods?)
     // click listener for the burger menu items
     navigationView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
       @Override
@@ -128,11 +156,90 @@ Furthermore if I recall correctly, I don't think that the "position" in the list
 
          */
 
+        if (musicService != null) {
+          musicService.setChapterPosition(0);
+          musicService.playTrack();
+        } else {
+          Log.d(TAG, SUB_TAG + "why?");
+        }
       }
     });
 
   }
 
+
+  /**
+   * Stop the media playback when this activity is destroyed, and clean up resources.
+   * TODO:  Might want to modify this later, so that audio can keep playing when
+   * user navigates away from activity, and activity is garbage collected.  Instead,
+   * stop media playback service only when the SimplyE app is closed.
+   * Do find out what resources should stop/release so SimplyE doesn't hog when user isn't listening to an audiobook.
+   */
+  @Override
+  protected void onDestroy() {
+    stopService(playIntent);
+    musicService = null;
+    super.onDestroy();
+  }
+
+
+  /**
+   * Start the MusicService instance when the Activity instance starts.
+   * Pass the song list we've assembled to the MusicService.
+   *
+   *
+   */
+  @Override
+  protected void onStart() {
+    super.onStart();
+    Log.d(TAG, SUB_TAG + "Activity.onStart");
+
+    if (playIntent == null) {
+      playIntent = new Intent(this, MusicService.class);
+      // BIND_AUTO_CREATE recreates the Service if it is destroyed when there’s a bounding client
+      boolean bound = bindService(playIntent, musicConnection, Context.BIND_AUTO_CREATE);
+      Log.d(TAG, SUB_TAG + "bound=" + bound);
+
+      // TODO: ?? Every call to this method will result in a corresponding call to the target service's android.app.Service.onStartCommand method,
+      // with the intent given here. This provides a convenient way to submit jobs to a service without having to bind and call on to its interface.
+      startService(playIntent);
+    }
+  }
+
+
+  /**
+   * We are going to play the music in the Service class, but control it from the Activity class, where the application's user interface operates.
+   * To accomplish this, we will have to bind to the Service class, which we do here.
+   */
+  private ServiceConnection musicConnection = new ServiceConnection() {
+
+    @Override
+    public void onServiceConnected(ComponentName name, IBinder service) {
+      Log.d(TAG, SUB_TAG + "musicConnection.onServiceConnected");
+
+      MusicService.MusicBinder binder = (MusicService.MusicBinder)service;
+      // get service
+      musicService = binder.getService();
+
+      // pass chapter list
+      // NOTE: If the service is Local (not IntentService), setChapters execution happens on the thread of the calling client/activity (this UI thread).
+      // If wish to call a long-running operation, then spin a new background thread in the called service method.
+      musicService.setChapters(chapters);
+      isMusicServiceBound = true;
+    }
+
+    @Override
+    public void onServiceDisconnected(ComponentName name) {
+      musicService = null;
+      isMusicServiceBound = false;
+    }
+  };
+
+
+  /* ---------------------------------- /LIFECYCLE METHODS ----------------------------------- */
+
+
+  /* ------------------------------------ NAVIGATION EVENT HANDLERS ------------------------------------- */
 
   @Override
   public void onBackPressed() {
@@ -218,8 +325,8 @@ Furthermore if I recall correctly, I don't think that the "position" in the list
       //navigationView.
 
 
-      // TODO play the audio for chapter 1
-      playStuff();
+      musicService.setChapterPosition(0);
+      musicService.playTrack();
     }// if chapter
 
 
@@ -228,58 +335,67 @@ Furthermore if I recall correctly, I don't think that the "position" in the list
     return true;
   }// burger menu listener
 
-
-  /**
-   * TODO:  must wrap MediaPlayer in my own implementation to keep track of state when the
-   * activity that starts the player stops and resumes (https://stackoverflow.com/questions/11876229/android-mediaplayer-is-there-an-isprepared-or-getstatus-method).
-   */
-  public void playStuff() {
-
-    // TODO remove mo3 file from res/raw starts with a number
-
-    // TODO mp3 file location is currently hardcoded to assets dir, but in SimplyE will be calling a URI that's outside of the apk
-    String chapterFilePath = "21_gun_salute/1752599_001_C001.mp3";
-
-    //Uri myUri = Uri.parse("file:///android_asset/a21_gun_salute/a1752599_001_c001.mp3"); // initialize Uri here
-
-    AssetManager assetManager = getResources().getAssets();
-    AssetFileDescriptor assetFileDescriptor = null;
-
-    MediaPlayer mediaPlayer = new MediaPlayer();
-    // so we can call media playback asynchronously, so's not to hang the UI thread
-    mediaPlayer.setOnPreparedListener(new MediaPlayer.OnPreparedListener(){
-      @Override
-      public void onPrepared(MediaPlayer mp) {
-        mp.start();
-      }
-    });
+  /* ------------------------------------ /NAVIGATION EVENT HANDLERS ------------------------------------- */
 
 
-    try {
-      assetFileDescriptor = assetManager.openFd(chapterFilePath);
-      mediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
-      mediaPlayer.setDataSource(assetFileDescriptor.getFileDescriptor(), assetFileDescriptor.getStartOffset(), assetFileDescriptor.getLength());
+  /* ------------------------------------ PLAYBACK EVENT HANDLERS ------------------------------------- */
 
-      //mediaPlayer.prepare(); // synchronously
-      mediaPlayer.prepareAsync();
-    } catch (IOException e) {
-      // TODO
-      e.printStackTrace();
-    } catch (IllegalArgumentException e) {
-      // TODO
-      e.printStackTrace();
-    } finally {
-      if (assetFileDescriptor != null) {
-        try {
-          assetFileDescriptor.close();
-        } catch (IOException e) {
-          // TODO
-          e.printStackTrace();
-        }
-      }
-    }
+  @Override
+  public void start() {
 
-    mediaPlayer.start();
   }
+
+  @Override
+  public void pause() {
+
+  }
+
+  @Override
+  public int getDuration() {
+    return 0;
+  }
+
+  @Override
+  public int getCurrentPosition() {
+    return 0;
+  }
+
+  @Override
+  public void seekTo(int pos) {
+
+  }
+
+  @Override
+  public boolean isPlaying() {
+    return false;
+  }
+
+  @Override
+  public int getBufferPercentage() {
+    return 0;
+  }
+
+  @Override
+  public boolean canPause() {
+    return false;
+  }
+
+  @Override
+  public boolean canSeekBackward() {
+    return false;
+  }
+
+  @Override
+  public boolean canSeekForward() {
+    return false;
+  }
+
+  @Override
+  public int getAudioSessionId() {
+    return 0;
+  }
+
+  /* ------------------------------------ /PLAYBACK EVENT HANDLERS ------------------------------------- */
+
 
 }

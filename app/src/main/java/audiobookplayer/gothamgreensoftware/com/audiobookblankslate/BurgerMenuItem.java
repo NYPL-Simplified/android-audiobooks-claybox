@@ -15,6 +15,11 @@ public class BurgerMenuItem {
   }
 
 
+  public BurgerMenuItem(ChapterTrack track) {
+    // TODO
+  }
+
+
   public String getIcon() {
     return iconName;
   }
